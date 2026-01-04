@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discipline RPG - Duo V7</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020617; color: #f8fafc; overflow-x: hidden; }
+        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.05); }
+        .avatar-glow-moi { box-shadow: 0 0 30px rgba(59, 130, 246, 0.3); border-color: #3b82f6; }
+        .avatar-glow-copine { box-shadow: 0 0 30px rgba(236, 72, 153, 0.3); border-color: #ec4899; }
+        .btn-buy { background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; font-weight: 900; }
+        .malus-card { border: 1px solid rgba(239, 68, 68, 0.2); background: rgba(239, 68, 68, 0.05); }
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; }
+    </style>
+</head>
+<body>
+    <div id="app" class="max-w-md mx-auto min-h-screen pb-24 relative shadow-2xl border-x border-slate-900 bg-slate-950">
+        
+        <div class="flex p-2 bg-slate-900 sticky top-0 z-50 border-b border-slate-800">
+            <button @click="activeUser = 'moi'" :class="['flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all', activeUser === 'moi' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500']">
+                🧔‍♂️ MOI
+            </button>
+            <button @click="activeUser = 'copine'" :class="['flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all', activeUser === 'copine' ? 'bg-pink-600 text-white shadow-lg' : 'text-slate-500']">
+                👩‍🦰 COPINE
+            </button>
+        </div>
+
+        <div class="p-6 pt-8 pb-6 border-b border-slate-900" :class="activeUser === 'moi' ? 'bg-blue-900/10' : 'bg-pink-900/10'">
+            <div class="flex items-center gap-6">
+                <div class="relative">
+                    <div class="w-20 h-20 rounded-2xl bg-slate-800 border-2 flex items-center justify-center text-4xl overflow-hidden relative z-10"
+                         :class="activeUser === 'moi' ? 'avatar-glow-moi' : 'avatar-glow-copine'">
+                        {{ currentRank.icon }}
+                    </div>
+                    <div class="absolute -bottom-2 -right-2 text-[10px] font-black px-2 py-1 rounded-lg z-20 shadow-xl border-2 border-slate-950"
+                         :class="activeUser === 'moi' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white'">
+                        LVL {{ currentUser.globalLevel }}
+                    </div>
+                </div>
+
+                <div class="flex-1">
+                    <p class="text-[9px] font-black uppercase tracking-[0.2em] mb-1" :class="activeUser === 'moi' ? 'text-blue-400' : 'text-pink-400'">
+                        {{ currentRank.name }}
+                    </p>
+                    <h2 class="text-xl font-extrabold text-white uppercase tracking-tight mb-2 leading-tight">
+                        {{ activeUser === 'moi' ? 'Guerrier' : 'Héroïne' }}
+                    </h2>
+                    
+                    <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden p-[1px] border border-slate-800">
+                        <div class="h-full rounded-full transition-all duration-500" 
+                             :class="activeUser === 'moi' ? 'bg-blue-500' : 'bg-pink-500'"
+                             :style="{ width: globalXpPercent + '%' }"></div>
+                    </div>
+                    <div class="flex justify-between mt-2 font-black text-[9px] uppercase">
+                        <span class="text-slate-500 italic">XP: {{ Math.floor(currentUser.globalXp) }}</span>
+                        <span class="text-amber-500 font-black italic">🪙 {{ currentUser.coins }} COINS</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <nav class="flex gap-1 bg-slate-900 p-1 mx-4 mt-4 rounded-xl border border-slate-800">
+            <button v-for="t in ['piliers', 'quêtes', 'boutique', 'journal']" @click="currentTab = t"
+                :class="['flex-1 py-2 text-[9px] font-black rounded-lg transition-all uppercase tracking-tighter', 
+                currentTab === t ? (activeUser === 'moi' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white') : 'text-slate-500 hover:text-slate-300']">
+                {{ t }}
+            </button>
+        </nav>
+
+        <main class="p-4">
+            
+            <div v-if="currentTab === 'piliers'" class="grid grid-cols-2 gap-3">
+                <div v-for="(skill, id) in currentUser.skills" :key="id" class="glass p-4 rounded-2xl border border-slate-800">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-2xl">{{ getSkillIcon(id) }}</span>
+                        <span class="text-[10px] font-black text-slate-500 uppercase italic">Lvl {{ skill.level }}</span>
+                    </div>
+                    <h3 class="font-bold text-[9px] text-slate-400 mb-2 uppercase tracking-widest">{{ id }}</h3>
+                    <div class="h-1 w-full bg-slate-900 rounded-full overflow-hidden">
+                        <div class="h-full" :class="activeUser === 'moi' ? 'bg-blue-500' : 'bg-pink-500'" :style="{ width: (skill.xp / 100) * 100 + '%' }"></div>
+                    </div>
+                </div>
+                <div v-if="activeUser === 'copine'" @click="applyBonusOngle" class="col-span-2 mt-2 bg-green-900/20 border-2 border-dashed border-green-500/40 p-4 rounded-2xl flex justify-between items-center cursor-pointer active:scale-95 transition-all">
+                    <h4 class="font-black text-xs text-green-400 uppercase tracking-widest">✋ Bonus Ongles</h4>
+                    <span class="bg-green-600 text-white text-[10px] font-black px-3 py-1 rounded-full">+20 XP</span>
+                </div>
+            </div>
+
+            <div v-if="currentTab === 'quêtes'" class="space-y-8">
+                <div class="glass p-3 rounded-xl border border-blue-500/20 flex justify-between items-center">
+                    <span class="text-[10px] font-black uppercase text-blue-400">🛡️ Règle Streak (3 Micros) :</span>
+                    <div class="flex gap-1">
+                        <div v-for="i in 3" :key="i" :class="['w-2 h-2 rounded-full transition-all', i <= mvdCount ? 'bg-green-500 shadow-sm shadow-green-500' : 'bg-slate-800']"></div>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <h2 class="text-[10px] font-black text-red-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                        <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> Zone de Malus
+                    </h2>
+                    <div class="grid grid-cols-1 gap-2">
+                        <div v-for="m in currentMalus" :key="m.name" @click="logMalus(m)"
+                             class="malus-card p-4 rounded-2xl flex justify-between items-center active:scale-95 transition-all cursor-pointer">
+                            <div>
+                                <h4 class="font-black text-red-400 text-xs uppercase">{{ m.name }}</h4>
+                                <p class="text-[8px] text-red-300/60 font-bold">PÉNALITÉ : -{{ m.xp }} XP | -{{ m.coins }} 🪙</p>
+                            </div>
+                            <span class="text-red-500 text-xl">⚠️</span>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="border-slate-800">
+
+                <div v-for="(tasks, catName) in currentActionsGrouped" :key="catName" class="space-y-3">
+                    <h2 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] border-l-2 pl-2" :class="activeUser === 'moi' ? 'border-blue-500' : 'border-pink-500'">
+                        {{ catName }}
+                    </h2>
+                    <div v-for="task in tasks" :key="task.name" @click="logAction(task)"
+                         class="glass p-4 rounded-2xl border border-slate-800 flex justify-between items-center active:scale-95 transition-all cursor-pointer">
+                        <div class="flex-1">
+                            <span :class="typeBadge(task.type)" class="text-[7px] px-1.5 py-0.5 rounded font-black uppercase mr-2">{{ task.type }}</span>
+                            <span class="font-bold text-slate-200 text-sm">{{ task.name }}</span>
+                            <p v-if="task.rule" class="text-[9px] text-slate-500 mt-1 italic">{{ task.rule }}</p>
+                        </div>
+                        <div class="text-right flex flex-col items-end">
+                            <span class="font-black text-xs" :class="activeUser === 'moi' ? 'text-blue-400' : 'text-pink-400'">+{{ task.xp_base }} XP</span>
+                            <span v-if="isDoneToday(task.name)" class="text-[8px] text-green-500 font-black mt-1 uppercase">Fait ✔</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="currentTab === 'boutique'" class="space-y-4">
+                <div class="text-center mb-6">
+                    <p class="text-[10px] text-slate-500 font-black uppercase tracking-widest">Trésorerie</p>
+                    <h2 class="text-3xl font-black text-amber-500 italic">🪙 {{ currentUser.coins }}</h2>
+                </div>
+                <div v-for="item in shopItems" :key="item.id" class="glass p-4 rounded-2xl border border-slate-800 flex items-center gap-4">
+                    <span class="text-3xl">{{ item.icon }}</span>
+                    <div class="flex-1">
+                        <h4 class="font-black text-xs text-white uppercase">{{ item.name }}</h4>
+                        <p class="text-[9px] text-slate-500 mb-2">{{ item.desc }}</p>
+                        <button @click="buyItem(item)" :disabled="currentUser.coins < item.price"
+                                :class="['w-full py-2 rounded-lg text-[9px] font-black uppercase tracking-widest', currentUser.coins >= item.price ? 'btn-buy' : 'bg-slate-800 text-slate-600']">
+                            Acheter : {{ item.price }} 🪙
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="currentTab === 'journal'" class="space-y-2">
+                <div v-for="log in sortedLogs" :key="log.id" class="glass p-3 rounded-xl flex justify-between items-center text-[10px] border-l-2" :class="log.isMalus ? 'border-red-500 bg-red-500/5' : (activeUser === 'moi' ? 'border-blue-500' : 'border-pink-500')">
+                    <div>
+                        <span class="font-bold block uppercase tracking-tighter" :class="log.isMalus ? 'text-red-400' : 'text-slate-300'">{{ log.name }}</span>
+                        <span class="text-slate-600 font-bold uppercase">{{ log.time }}</span>
+                    </div>
+                    <div class="font-black" :class="log.isMalus ? 'text-red-500' : (activeUser === 'moi' ? 'text-blue-500' : 'text-pink-500')">
+                        {{ log.isMalus ? '-' : '+' }}{{ log.xp }} XP
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <transition name="fade">
+            <div v-if="toast" class="fixed bottom-10 left-4 right-4 z-50 p-4 rounded-2xl shadow-2xl flex items-center justify-center font-black text-[10px] uppercase text-center"
+                 :class="toast.includes('MALUS') || toast.includes('NIVEAU') ? 'bg-red-600 text-white' : (activeUser === 'moi' ? 'bg-blue-600 text-white' : 'bg-pink-600 text-white')">
+                {{ toast }}
+            </div>
+        </transition>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                const activeUser = ref('moi');
+                const currentTab = ref('piliers');
+                const toast = ref(null);
+
+                // --- MALUS COMMUNS ---
+                const malusDiscipline = [
+                    {name: 'Pas de sport', xp: 50, coins: 100},
+                    {name: 'Pas révisé l’anglais', xp: 30, coins: 60},
+                    {name: 'Pas couché à l’heure', xp: 20, coins: 40},
+                    {name: 'Traîné au lit le matin', xp: 20, coins: 40}
+                ];
+
+                // --- DONNÉES MOI ---
+                const dataMoi = {
+                    skills: { mindset: '🧠', sante: '💪', nutrition: '🥗', creation: '🎬', finances: '💰', japonais: '🇯🇵' },
+                    malus: [ ...malusDiscipline, {name: 'Junk Food', xp: 50, coins: 100} ],
+                    actions: [
+                        { cat: '🧠 MINDSET', name: 'Médiation 3 min', type: 'micro', xp_base: 10, skill: 'mindset' },
+                        { cat: '🧠 MINDSET', name: 'Journal 5 lignes', type: 'medium', xp_base: 35, skill: 'mindset' },
+                        { cat: '🧠 MINDSET', name: 'Bilan semaine', type: 'boss', xp_base: 120, skill: 'mindset' },
+                        { cat: '💪 SANTÉ', name: '10 000 pas', type: 'micro', xp_base: 10, skill: 'sante' },
+                        { cat: '💪 SANTÉ', name: 'Séance à la salle', type: 'medium', xp_base: 40, skill: 'sante' },
+                        { cat: '💪 SANTÉ', name: '1 semaine sport', type: 'boss', xp_base: 120, skill: 'sante' },
+                        { cat: '🥗 NUTRITION', name: '2L d’eau', type: 'micro', xp_base: 10, skill: 'nutrition' },
+                        { cat: '🥗 NUTRITION', name: '1 repas propre', type: 'medium', xp_base: 40, skill: 'nutrition' },
+                        { cat: '🥗 NUTRITION', name: '1 semaine clean', type: 'boss', xp_base: 120, skill: 'nutrition' },
+                        { cat: '🎬 CRÉATION', name: '1 idée vidéo', type: 'micro', xp_base: 10, skill: 'creation' },
+                        { cat: '🎬 CRÉATION', name: '30 min création', type: 'medium', xp_base: 40, skill: 'creation' },
+                        { cat: '🎬 CRÉATION', name: 'Publier une vidéo', type: 'boss', xp_base: 200, skill: 'creation' },
+                        { cat: '💰 FINANCES', name: 'Noter dépenses', type: 'micro', xp_base: 10, skill: 'finances' },
+                        { cat: '💰 FINANCES', name: 'Économiser', type: 'medium', xp_base: 40, skill: 'finances' },
+                        { cat: '💰 FINANCES', name: 'Argent voyage', type: 'boss', xp_base: 120, skill: 'finances' },
+                        { cat: '🇯🇵 JAPONAIS', name: '10 min Anki', type: 'micro', xp_base: 10, skill: 'japonais' },
+                        { cat: '🇯🇵 JAPONAIS', name: '20 min leçon', type: 'medium', xp_base: 40, skill: 'japonais' },
+                        { cat: '🇯🇵 JAPONAIS', name: 'Révision hebdo', type: 'boss', xp_base: 120, skill: 'japonais' },
+                    ]
+                };
+
+                // --- DONNÉES COPINE (V7 COMPLET) ---
+                const dataCopine = {
+                    skills: { permis: '🚗', sante: '💪', alimentation: '🥗', anglais: '🇺🇸', sommeil: '🌙', ecran: '📵', lecture: '📚', finances: '💰', logement: '🏠' },
+                    malus: [ ...malusDiscipline, {name: 'Se ronger les ongles', xp: 40, coins: 80} ],
+                    actions: [
+                        { cat: '💰 FINANCES', name: 'Noter dépenses', type: 'micro', xp_base: 10, skill: 'finances' },
+                        { cat: '💰 FINANCES', name: 'Économiser / Budget', type: 'medium', xp_base: 40, skill: 'finances' },
+                        { cat: '💰 FINANCES', name: 'Argent voyage', type: 'boss', xp_base: 120, skill: 'finances' },
+                        { cat: '📵 ÉCRAN', name: '2h max réseaux', type: 'micro', xp_base: 10, skill: 'ecran' },
+                        { cat: '📵 ÉCRAN', name: 'Soirée sans réseaux', type: 'medium', xp_base: 40, skill: 'ecran' },
+                        { cat: '📵 ÉCRAN', name: 'Moyenne 4h/semaine', type: 'boss', xp_base: 120, skill: 'ecran' },
+                        { cat: '📚 LECTURE', name: 'Lire 10 pages', type: 'micro', xp_base: 10, skill: 'lecture' },
+                        { cat: '📚 LECTURE', name: 'Lire 30 min', type: 'medium', xp_base: 40, skill: 'lecture' },
+                        { cat: '📚 LECTURE', name: 'Lire un livre entier', type: 'boss', xp_base: 120, skill: 'lecture' },
+                        { cat: '🌙 SOMMEIL', name: 'Coucher à l’heure', type: 'micro', xp_base: 10, skill: 'sommeil', rule: 'Au lit avant cible' },
+                        { cat: '🌙 SOMMEIL', name: '7-8h de sommeil', type: 'medium', xp_base: 40, skill: 'sommeil' },
+                        { cat: '🌙 SOMMEIL', name: 'Semaine parfaite (5j+)', type: 'boss', xp_base: 120, skill: 'sommeil' },
+                        { cat: '🚗 PERMIS', name: '30 min Permis', type: 'micro', xp_base: 10, skill: 'permis' },
+                        { cat: '🚗 PERMIS', name: 'Conduite (1h)', type: 'medium', xp_base: 40, skill: 'permis' },
+                        { cat: '🚗 PERMIS', name: 'Virement Permis', type: 'boss', xp_base: 120, skill: 'permis' },
+                        { cat: '💪 SANTÉ', name: '6k/10k pas', type: 'micro', xp_base: 10, skill: 'sante' },
+                        { cat: '💪 SANTÉ', name: 'Séance salle', type: 'medium', xp_base: 40, skill: 'sante' },
+                        { cat: '💪 SANTÉ', name: 'Séance 1 semaine', type: 'boss', xp_base: 120, skill: 'sante' },
+                        { cat: '🥗 ALIMENTATION', name: '1 repas propre', type: 'micro', xp_base: 10, skill: 'alimentation' },
+                        { cat: '🥗 ALIMENTATION', name: '2L d’eau', type: 'medium', xp_base: 40, skill: 'alimentation' },
+                        { cat: '🥗 ALIMENTATION', name: '1 semaine clean', type: 'boss', xp_base: 120, skill: 'alimentation' },
+                        { cat: '🏠 LOGEMENT', name: 'Faire le lit', type: 'micro', xp_base: 10, skill: 'logement' },
+                        { cat: '🏠 LOGEMENT', name: 'Chambre rangée', type: 'boss', xp_base: 120, skill: 'logement' },
+                        { cat: '🇺🇸 ANGLAIS', name: '15 min anglais', type: 'micro', xp_base: 10, skill: 'anglais' },
+                        { cat: '🇺🇸 ANGLAIS', name: '30 min leçon', type: 'medium', xp_base: 40, skill: 'anglais' },
+                        { cat: '🇺🇸 ANGLAIS', name: 'Révision 1h', type: 'boss', xp_base: 120, skill: 'anglais' },
+                    ]
+                };
+
+                const shopItems = [
+                    { id: 'focus', icon: '🧪', name: 'Élixir Focus', desc: 'Double XP prochaine action', price: 300 },
+                    { id: 'shield', icon: '🛡️', name: 'Bouclier Streak', desc: 'Sauve ta streak sans rien faire', price: 1500 },
+                    { id: 'gift', icon: '🎁', name: 'Récompense Réelle', desc: 'S\'offrir un petit plaisir mérité', price: 1000 }
+                ];
+
+                // --- STATE ---
+                const profiles = ref({
+                    moi: { globalLevel: 1, globalXp: 0, coins: 0, skills: {}, logs: [] },
+                    copine: { globalLevel: 1, globalXp: 0, coins: 0, skills: {}, logs: [] }
+                });
+
+                const currentUser = computed(() => profiles.value[activeUser.value]);
+                const nextGlobalLevelXp = computed(() => 500 + (currentUser.value.globalLevel - 1) * 200);
+                const globalXpPercent = computed(() => (currentUser.value.globalXp / nextGlobalLevelXp.value) * 100);
+                const mvdCount = computed(() => currentUser.value.logs.filter(l => l.date === new Date().toLocaleDateString() && l.type === 'micro').length);
+
+                const currentRank = computed(() => {
+                    const lvl = currentUser.value.globalLevel;
+                    return activeUser.value === 'moi' 
+                        ? (lvl < 5 ? {name:'Vagabond', icon:'🧔‍♂️'} : lvl < 15 ? {name:'Guerrier', icon:'⚔️'} : {name:'Seigneur', icon:'👑'})
+                        : (lvl < 5 ? {name:'Novice', icon:'👩‍🦰'} : lvl < 15 ? {name:'Héroïne', icon:'🛡️'} : {name:'Reine', icon:'👸'});
+                });
+
+                const currentActionsGrouped = computed(() => {
+                    const data = activeUser.value === 'moi' ? dataMoi : dataCopine;
+                    return data.actions.reduce((acc, obj) => { (acc[obj.cat] = acc[obj.cat] || []).push(obj); return acc; }, {});
+                });
+
+                const currentMalus = computed(() => activeUser.value === 'moi' ? dataMoi.malus : dataCopine.malus);
+
+                // --- LOGIQUE ---
+                const logAction = (task) => {
+                    const user = profiles.value[activeUser.value];
+                    const today = new Date().toLocaleDateString();
+                    if (user.logs.some(l => l.date === today && l.name === task.name)) return showToast("DÉJÀ FAIT ! ✋");
+
+                    user.globalXp += task.xp_base;
+                    user.coins += Math.floor(task.xp_base / 2);
+                    
+                    if (!user.skills[task.skill]) user.skills[task.skill] = {level:1, xp:0};
+                    user.skills[task.skill].xp += task.xp_base;
+                    while(user.skills[task.skill].xp >= 100) { user.skills[task.skill].xp -= 100; user.skills[task.skill].level++; }
+
+                    while (user.globalXp >= nextGlobalLevelXp.value) { user.globalXp -= nextGlobalLevelXp.value; user.globalLevel++; showToast("LEVEL UP ! 🏆"); }
+                    
+                    user.logs.unshift({ id: Date.now(), name: task.name, xp: task.xp_base, type: task.type, date: today, time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) });
+                    showToast(`+${task.xp_base} XP GAGNÉS`);
+                    save();
+                };
+
+                const logMalus = (m) => {
+                    const user = profiles.value[activeUser.value];
+                    user.globalXp -= m.xp;
+                    user.coins = Math.max(0, user.coins - m.coins);
+
+                    if (user.globalXp < 0) {
+                        if (user.globalLevel > 1) { user.globalLevel--; user.globalXp = nextGlobalLevelXp.value - 50; showToast("⚠️ NIVEAU INFÉRIEUR !"); }
+                        else user.globalXp = 0;
+                    }
+                    user.logs.unshift({ id: Date.now(), name: `MALUS: ${m.name}`, xp: m.xp, isMalus: true, date: new Date().toLocaleDateString(), time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) });
+                    showToast(`MALUS : -${m.xp} XP ❌`);
+                    save();
+                };
+
+                const applyBonusOngle = () => { profiles.value.copine.globalXp += 20; showToast("BONUS ONGLES : +20 XP ✨"); save(); };
+                const buyItem = (i) => { if(currentUser.value.coins >= i.price) { currentUser.value.coins -= i.price; showToast(`ACHAT : ${i.name} ✅`); save(); }};
+                const showToast = (m) => { toast.value = m; setTimeout(() => toast.value = null, 2500); };
+                const isDoneToday = (name) => currentUser.value.logs.some(l => l.date === new Date().toLocaleDateString() && l.name === name);
+                const getSkillIcon = (id) => (activeUser.value === 'moi' ? dataMoi : dataCopine).skills[id] || '✨';
+                const typeBadge = (t) => t === 'micro' ? 'bg-blue-900/40 text-blue-400' : t === 'medium' ? 'bg-purple-900/40 text-purple-400' : 'bg-red-900/40 text-red-400';
+                const save = () => localStorage.setItem('rpg_duo_v7', JSON.stringify(profiles.value));
+
+                onMounted(() => {
+                    const saved = localStorage.getItem('rpg_duo_v7');
+                    if (saved) profiles.value = JSON.parse(saved);
+                    else {
+                        Object.keys(dataMoi.skills).forEach(s => profiles.value.moi.skills[s] = {level:1, xp:0});
+                        Object.keys(dataCopine.skills).forEach(s => profiles.value.copine.skills[s] = {level:1, xp:0});
+                    }
+                });
+
+                return {
+                    activeUser, currentTab, currentUser, toast, currentRank, globalXpPercent, nextGlobalLevelXp,
+                    mvdCount, currentActionsGrouped, currentMalus, shopItems, logAction, logMalus, applyBonusOngle, 
+                    buyItem, getSkillIcon, typeBadge, isDoneToday, sortedLogs: computed(() => currentUser.value.logs.slice(0, 15))
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>
